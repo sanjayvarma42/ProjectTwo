@@ -1,0 +1,31 @@
+<html>
+<body>
+<h2>Welcome {{ username }}</h2>
+<h3>Balance: ₹{{ balance }}</h3>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    {% if category == 'dashboard' %}
+      <p style="color:green">{{ message }}</p>
+    {% endif %}
+  {% endfor %}
+{% endwith %}
+
+
+<h3>Deposit</h3>
+<form action="/deposit" method="post">
+    <input type="number" name="amount" required>
+    <button>Deposit</button>
+</form>
+
+<h3>Withdraw</h3>
+<form action="/withdraw" method="post">
+    <input type="number" name="amount" required>
+    <button>Withdraw</button>
+</form>
+
+<br>
+<a href="/transactions">View Transactions</a><br>
+<a href="/logout">Logout</a>
+</body>
+</html>
