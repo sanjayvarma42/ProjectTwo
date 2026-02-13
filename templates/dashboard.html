@@ -1,31 +1,150 @@
+<!DOCTYPE html>
 <html>
+<head>
+    <title>Dashboard</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4e73df, #1cc88a);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card {
+            background: white;
+            width: 420px;
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .balance {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #1cc88a;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: 0.3s;
+        }
+
+        .deposit-btn {
+            background-color: #1cc88a;
+            color: white;
+        }
+
+        .deposit-btn:hover {
+            background-color: #17a673;
+        }
+
+        .withdraw-btn {
+            background-color: #e74a3b;
+            color: white;
+        }
+
+        .withdraw-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .link {
+            margin-top: 10px;
+        }
+
+        .link a {
+            text-decoration: none;
+            color: #4e73df;
+            font-weight: bold;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+    </style>
+</head>
+
 <body>
-<h2>Welcome {{ username }}</h2>
-<h3>Balance: ₹{{ balance }}</h3>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    {% if category == 'dashboard' %}
-      <p style="color:green">{{ message }}</p>
-    {% endif %}
-  {% endfor %}
-{% endwith %}
+<div class="card">
 
+    <h2>Welcome Account: {{ account_number }}</h2>
+    <div class="balance">Balance: ₹{{ balance }}</div>
 
-<h3>Deposit</h3>
-<form action="/deposit" method="post">
-    <input type="number" name="amount" required>
-    <button>Deposit</button>
-</form>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        {% if category.startswith('dashboard') %}
+            <div class="alert {% if 'success' in category %}alert-success{% else %}alert-error{% endif %}">
+                {{ message }}
+            </div>
+        {% endif %}
+      {% endfor %}
+    {% endwith %}
 
-<h3>Withdraw</h3>
-<form action="/withdraw" method="post">
-    <input type="number" name="amount" required>
-    <button>Withdraw</button>
-</form>
+    <h3>Deposit Money</h3>
+    <form action="/deposit" method="post">
+        <input type="number" name="amount" placeholder="Enter amount" required>
+        <button type="submit" class="deposit-btn">Deposit</button>
+    </form>
 
-<br>
-<a href="/transactions">View Transactions</a><br>
-<a href="/logout">Logout</a>
+    <h3>Withdraw Money</h3>
+    <form action="/withdraw" method="post">
+        <input type="number" name="amount" placeholder="Enter amount" required>
+        <button type="submit" class="withdraw-btn">Withdraw</button>
+    </form>
+
+    <div class="link">
+        <a href="/transactions">View Transactions</a>
+    </div>
+
+    <div class="link">
+        <a href="/logout">Logout</a>
+    </div>
+
+</div>
+
 </body>
 </html>

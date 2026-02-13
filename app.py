@@ -15,7 +15,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
-        username TEXT UNIQUE,
+        account_number TEXT UNIQUE,
         mobile TEXT,
         password TEXT,
         balance REAL DEFAULT 0
@@ -40,16 +40,16 @@ init_db()
 def get_db():
     return sqlite3.connect("bank.db")
 
-# ---------------- FACE FUNCTIONS ----------------
+# ---------------- FACE SETUP ----------------
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
-def capture_face_image(username):
+# ---------------- FACE CAPTURE ----------------
+def capture_face_image(account_number):
     cam = cv2.VideoCapture(0)
 
     if not cam.isOpened():
-        print("Camera not accessible")
         return False
 
     captured_face = None
@@ -68,30 +68,23 @@ def capture_face_image(username):
             minSize=(80, 80)
         )
 
-        # Draw rectangle if face detected
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-        # Instruction text on camera window
-        cv2.putText(
-            frame,
-            "Press Q to capture face",
-            (20, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.8,
-            (0, 255, 0),
-            2
-        )
+        cv2.putText(frame, "Press Q to capture face",
+                    (20, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 255, 0),
+                    2)
 
         cv2.imshow("Face Capture", frame)
 
-        # Capture only if face detected
         if len(faces) > 0 and cv2.waitKey(1) & 0xFF == ord('q'):
             x, y, w, h = faces[0]
             captured_face = gray[y:y+h, x:x+w]
             break
 
-        # Allow ESC to cancel
         if cv2.waitKey(1) & 0xFF == 27:
             break
 
@@ -101,21 +94,21 @@ def capture_face_image(username):
     if captured_face is None:
         return False
 
-    # Resize and save face
     captured_face = cv2.resize(captured_face, (200, 200))
-
     os.makedirs("faces", exist_ok=True)
-    cv2.imwrite(f"faces/{username}.jpg", captured_face)
+    cv2.imwrite(f"faces/{account_number}.jpg", captured_face)
 
     return True
 
 
-def verify_face_image(username, max_attempts=3):
-    try:
-        saved_face = cv2.imread(f"faces/{username}.jpg", 0)
-    except:
+# ---------------- FACE VERIFY ----------------
+def verify_face_image(account_number, max_attempts=3):
+    path = f"faces/{account_number}.jpg"
+
+    if not os.path.exists(path):
         return False
 
+    saved_face = cv2.imread(path, 0)
     cam = cv2.VideoCapture(0)
     attempts = 0
 
@@ -132,16 +125,12 @@ def verify_face_image(username, max_attempts=3):
             minSize=(80, 80)
         )
 
-        # Instruction text
-        cv2.putText(
-            frame,
-            "Align your face properly",
-            (20, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.8,
-            (0, 0, 255),
-            2
-        )
+        cv2.putText(frame, "Align your face properly",
+                    (20, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 0, 255),
+                    2)
 
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
@@ -150,17 +139,15 @@ def verify_face_image(username, max_attempts=3):
 
             diff = np.mean((saved_face - face_img) ** 2)
 
-            # MATCH FOUND
             if diff < 2000:
                 cam.release()
                 cv2.destroyAllWindows()
                 return True
 
         cv2.imshow("Face Login", frame)
-
         attempts += 1
 
-        if cv2.waitKey(1000) & 0xFF == 27:  # ESC to cancel
+        if cv2.waitKey(1000) & 0xFF == 27:
             break
 
     cam.release()
@@ -169,132 +156,161 @@ def verify_face_image(username, max_attempts=3):
 
 
 # ---------------- ROUTES ----------------
+
 @app.route('/')
 def login():
     return render_template("login.html")
+
 
 @app.route('/register')
 def register():
     return render_template("register.html")
 
+
 @app.route('/register_user', methods=['POST'])
 def register_user():
     name = request.form['name']
-    username = request.form['username']
+    account_number = request.form['account_number']
     mobile = request.form['mobile']
     password = request.form['password']
 
-    if not capture_face_image(username):
-        flash("Face not detected. Try again.", "error")
+    if not (account_number.isdigit() and len(account_number) == 6):
+        flash("Account number must be exactly 6 digits.", "register_error")
+        return redirect('/register')
+
+    if not capture_face_image(account_number):
+        flash("Face not detected. Try again.", "register_error")
         return redirect('/register')
 
     conn = get_db()
     c = conn.cursor()
     try:
         c.execute(
-            "INSERT INTO users (name, username, mobile, password) VALUES (?, ?, ?, ?)",
-            (name, username, mobile, password)
+            "INSERT INTO users (name, account_number, mobile, password) VALUES (?, ?, ?, ?)",
+            (name, account_number, mobile, password)
         )
         conn.commit()
-        flash("Registration successful with face data!", "success")
+        flash("Registration successful! Please login.", "login_success")
     except sqlite3.IntegrityError:
-        flash("Username already exists", "error")
+        flash("Account number already exists.", "register_error")
         conn.close()
         return redirect('/register')
 
     conn.close()
     return redirect('/')
 
+
 @app.route('/login_user', methods=['POST'])
 def login_user():
-    username = request.form['username'].strip()
-    password = request.form['password'].strip()
+    account_number = request.form['account_number']
+    password = request.form['password']
 
     conn = get_db()
     c = conn.cursor()
     c.execute(
-        "SELECT id FROM users WHERE username=? AND password=?",
-        (username, password)
+        "SELECT id FROM users WHERE account_number=? AND password=?",
+        (account_number, password)
     )
     user = c.fetchone()
     conn.close()
 
-    # Step 1: Password check
     if not user:
-        flash("Invalid username or password", "login_error")
+        flash("Invalid account number or password.", "login_error")
         return redirect('/')
 
-    # Step 2: Face verification
-    if not verify_face_image(username):
-        flash(
-            "Face not recognized. Please keep your face straight, well-lit, and try again.",
-            "login_error"
-        )
+    if not verify_face_image(account_number):
+        flash("Face not recognized. Try again.", "login_error")
         return redirect('/')
 
-    # Step 3: Success
     session['user_id'] = user[0]
-    session['username'] = username
-    flash("Login successful with face verification!", "login_success")
+    session['account_number'] = account_number
+
+    flash("Login successful!", "login_success")
     return redirect('/dashboard')
 
 
 @app.route('/dashboard')
 def dashboard():
+    if 'user_id' not in session:
+        return redirect('/')
+
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT balance FROM users WHERE id=?", (session['user_id'],))
     balance = c.fetchone()[0]
     conn.close()
-    return render_template("dashboard.html", balance=balance, username=session['username'])
 
+    return render_template(
+        "dashboard.html",
+        balance=balance,
+        account_number=session['account_number']
+    )
+
+
+# ---------------- DEPOSIT ----------------
 @app.route('/deposit', methods=['POST'])
 def deposit():
     amount = float(request.form['amount'])
+
     conn = get_db()
     c = conn.cursor()
-    c.execute("UPDATE users SET balance = balance + ? WHERE id=?", (amount, session['user_id']))
+    c.execute("UPDATE users SET balance = balance + ? WHERE id=?",
+              (amount, session['user_id']))
     c.execute("INSERT INTO transactions (user_id, type, amount) VALUES (?, ?, ?)",
               (session['user_id'], "Deposit", amount))
     conn.commit()
     conn.close()
-    flash("Deposit successful", "success")
+
+    flash("Deposit successful!", "dashboard_success")
     return redirect('/dashboard')
 
+
+# ---------------- WITHDRAW ----------------
 @app.route('/withdraw', methods=['POST'])
 def withdraw():
     amount = float(request.form['amount'])
+
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT balance FROM users WHERE id=?", (session['user_id'],))
+    c.execute("SELECT balance FROM users WHERE id=?",
+              (session['user_id'],))
     balance = c.fetchone()[0]
 
     if amount > balance:
-        flash("Insufficient balance", "error")
+        flash("Insufficient balance!", "dashboard_error")
         conn.close()
         return redirect('/dashboard')
 
-    c.execute("UPDATE users SET balance = balance - ? WHERE id=?", (amount, session['user_id']))
+    c.execute("UPDATE users SET balance = balance - ? WHERE id=?",
+              (amount, session['user_id']))
     c.execute("INSERT INTO transactions (user_id, type, amount) VALUES (?, ?, ?)",
               (session['user_id'], "Withdraw", amount))
     conn.commit()
     conn.close()
-    flash("Withdrawal successful", "success")
+
+    flash("Withdrawal successful!", "dashboard_success")
     return redirect('/dashboard')
 
+
+# ---------------- TRANSACTIONS ----------------
 @app.route('/transactions')
 def transactions():
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT type, amount, date FROM transactions WHERE user_id=?", (session['user_id'],))
+    c.execute("SELECT type, amount, date FROM transactions WHERE user_id=? ORDER BY date DESC",
+              (session['user_id'],))
     data = c.fetchall()
     conn.close()
+
     return render_template("transactions.html", data=data)
+
 
 @app.route('/logout')
 def logout():
     session.clear()
+    flash("Logged out successfully.", "login_success")
     return redirect('/')
+
 
 if __name__ == "__main__":
     app.run(debug=True)
