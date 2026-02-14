@@ -1,125 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bank Login</title>
-
+    <title>Secure Bank Login</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #4e73df, #1cc88a);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            margin:0;
+            font-family: Arial;
+            background: linear-gradient(135deg,#4e73df,#1cc88a);
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
         }
 
         .card {
-            background: white;
-            width: 360px;
-            padding: 35px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-
-        h2 {
-            margin-bottom: 25px;
-            color: #333;
+            background:white;
+            padding:40px;
+            width:380px;
+            border-radius:12px;
+            box-shadow:0 10px 25px rgba(0,0,0,0.2);
+            text-align:center;
         }
 
         input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-        }
-
-        input:focus {
-            border-color: #4e73df;
-            outline: none;
-            box-shadow: 0 0 6px rgba(78,115,223,0.5);
+            width:100%;
+            padding:12px;
+            margin-bottom:12px;
+            border-radius:6px;
+            border:1px solid #ccc;
         }
 
         button {
-            width: 100%;
-            padding: 12px;
-            background-color: #4e73df;
-            border: none;
-            color: white;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: 0.3s;
+            width:100%;
+            padding:12px;
+            border:none;
+            border-radius:6px;
+            font-size:15px;
+            cursor:pointer;
+            margin-bottom:10px;
         }
 
-        button:hover {
-            background-color: #2e59d9;
-        }
-
-        .link {
-            margin-top: 15px;
-            font-size: 14px;
-        }
-
-        .link a {
-            color: #1cc88a;
-            font-weight: bold;
-            text-decoration: none;
-        }
-
-        .link a:hover {
-            text-decoration: underline;
-        }
+        .face-btn { background:#1cc88a; color:white; }
+        .login-btn { background:#4e73df; color:white; }
 
         .alert {
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            font-size: 14px;
+            padding:10px;
+            margin-bottom:10px;
+            border-radius:6px;
         }
 
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
+        .success { background:#d4edda; color:#155724; }
+        .error { background:#f8d7da; color:#721c24; }
 
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
+        .link a {
+            color:#e74a3b;
+            text-decoration:none;
+            font-weight:bold;
         }
-
     </style>
 </head>
-
 <body>
 
 <div class="card">
 
-    <h2>Bank Login</h2>
+<h2>Secure Bank Login</h2>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        {% if category.startswith('login') %}
-            <div class="alert {% if 'success' in category %}alert-success{% else %}alert-error{% endif %}">
-                {{ message }}
-            </div>
-        {% endif %}
-      {% endfor %}
-    {% endwith %}
-
-    <form action="/login_user" method="post">
-        <input type="text" name="account_number" placeholder="6 Digit Account Number" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
-
-    <div class="link">
-        Not registered? <a href="/register">Create Account</a>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert {% if 'success' in category %}success{% else %}error{% endif %}">
+        {{ message }}
     </div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post">
+
+    <input type="text" name="account_number" placeholder="Account Number" required>
+    <input type="password" name="password" placeholder="Password" required>
+
+    <!-- Face Verification Button -->
+    <button formaction="/verify_face_only" formmethod="post" class="face-btn">
+        Verify Face ID
+    </button>
+
+    <!-- Final Login Button -->
+    <button formaction="/login_user" formmethod="post" class="login-btn">
+        Login
+    </button>
+
+</form>
+
+<div class="link">
+    Not registered? <a href="/register">Create Account</a>
+</div>
 
 </div>
 
